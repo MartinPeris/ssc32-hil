@@ -1,0 +1,20 @@
+name = "Conservative single-channel motion test"
+
+[[steps]]
+name = "identify-controller"
+action = "version"
+expect_prefix = "SSC32"
+
+[[steps]]
+name = "base-small-positive-offset"
+action = "move"
+duration_ms = 1000
+targets = { base = { offset_us = 50 } }
+operator_confirmation = "Confirm the base moved smoothly in the expected direction."
+
+[[steps]]
+name = "base-return-home"
+action = "move"
+duration_ms = 1000
+targets = { base = { offset_us = 0 } }
+operator_confirmation = "Confirm the base returned smoothly to the configured home position."

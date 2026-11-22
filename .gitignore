@@ -1,0 +1,5 @@
+/build*/
+/.cache/
+/ssc32-hil-report.json
+/ssc32-hil-report.xml
+.DS_Store

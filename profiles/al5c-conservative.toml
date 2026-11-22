@@ -1,0 +1,51 @@
+name = "AL5C conservative original wiring"
+
+[controller]
+device = "/dev/ttyUSB0"
+baud = 115200
+timeout_ms = 500
+
+# These deliberately narrow envelopes are suitable for first communication and
+# low-amplitude motion tests only. Verify every channel and mechanical limit on
+# the physical arm before widening them. The modified auxiliary base servo is
+# intentionally absent until its SSC-32 channel and direction are confirmed.
+
+[[channels]]
+name = "base"
+number = 0
+minimum_us = 1400
+home_us = 1500
+maximum_us = 1600
+speed_us_per_second = 100
+
+[[channels]]
+name = "shoulder"
+number = 1
+minimum_us = 1450
+home_us = 1500
+maximum_us = 1550
+speed_us_per_second = 75
+
+[[channels]]
+name = "elbow"
+number = 2
+minimum_us = 1450
+home_us = 1500
+maximum_us = 1550
+speed_us_per_second = 75
+
+[[channels]]
+name = "wrist"
+number = 3
+minimum_us = 1400
+home_us = 1500
+maximum_us = 1600
+speed_us_per_second = 100
+
+[[channels]]
+name = "gripper"
+number = 4
+minimum_us = 1450
+home_us = 1500
+maximum_us = 1550
+speed_us_per_second = 75

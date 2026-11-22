@@ -1,0 +1,16 @@
+name = "Controller communication smoke test"
+
+[[steps]]
+name = "identify-controller"
+action = "version"
+expect_prefix = "SSC32"
+
+[[steps]]
+name = "confirm-idle"
+action = "status"
+expect_moving = false
+
+[[steps]]
+name = "read-commanded-pulses"
+action = "pulse_query"
+channels = ["base", "shoulder", "elbow", "wrist", "gripper"]

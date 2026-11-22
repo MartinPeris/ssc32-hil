@@ -1,0 +1,22 @@
+name = "Invalid duplicate channel profile"
+
+[controller]
+device = "/dev/null"
+baud = 115200
+timeout_ms = 100
+
+[[channels]]
+name = "one"
+number = 0
+minimum_us = 1400
+home_us = 1500
+maximum_us = 1600
+speed_us_per_second = 100
+
+[[channels]]
+name = "two"
+number = 0
+minimum_us = 1400
+home_us = 1500
+maximum_us = 1600
+speed_us_per_second = 100
