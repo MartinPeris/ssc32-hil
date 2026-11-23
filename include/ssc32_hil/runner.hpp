@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 
+#include "ssc32/transport.hpp"
 #include "ssc32_hil/evidence.hpp"
 #include "ssc32_hil/model.hpp"
 
@@ -13,5 +14,8 @@ using Confirmation = std::function<bool(const std::string&)>;
 
 [[nodiscard]] RunEvidence run_plan(const ExecutionPlan& plan,
                                    const Confirmation& confirm);
+[[nodiscard]] RunEvidence run_plan_with_transport(const ExecutionPlan& plan,
+                                                  ssc32::Transport& transport,
+                                                  const Confirmation& confirm);
 
 }  // namespace ssc32_hil

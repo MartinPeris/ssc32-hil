@@ -3,8 +3,8 @@ set -euo pipefail
 
 readonly workspace=/workspace
 readonly source_dir="${workspace}/src/ssc32-hil"
-readonly coverage_lines_minimum=40
-readonly coverage_branches_minimum=30
+readonly coverage_lines_minimum=91
+readonly coverage_branches_minimum=83
 
 section() {
   printf '\n==> %s\n' "$1"
@@ -43,7 +43,8 @@ shellcheck \
   "${source_dir}/.githooks/pre-commit" \
   "${source_dir}/scripts/install_git_hooks.sh" \
   "${source_dir}/scripts/quality_gate.sh" \
-  "${source_dir}/scripts/quality_gate_inner.sh"
+  "${source_dir}/scripts/quality_gate_inner.sh" \
+  "${source_dir}/tests/cli_tests.sh"
 
 section 'GCC warnings-as-errors build, tests, scenarios, and installation'
 export CC=gcc CXX=g++

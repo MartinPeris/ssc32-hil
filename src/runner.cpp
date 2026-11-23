@@ -61,9 +61,15 @@ void verify_pulses(ssc32::Controller& controller, const PlannedStep& step,
 }  // namespace
 
 RunEvidence run_plan(const ExecutionPlan& plan, const Confirmation& confirm) {
-  RunEvidence evidence;
   ssc32::SerialTransport serial(plan.controller.device, plan.controller.baud_rate);
-  RecordingTransport recording(serial);
+  return run_plan_with_transport(plan, serial, confirm);
+}
+
+RunEvidence run_plan_with_transport(const ExecutionPlan& plan,
+                                    ssc32::Transport& transport,
+                                    const Confirmation& confirm) {
+  RunEvidence evidence;
+  RecordingTransport recording(transport);
   ssc32::Controller controller(recording);
 
   try {

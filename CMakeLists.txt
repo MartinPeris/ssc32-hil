@@ -83,6 +83,18 @@ if(SSC32_HIL_BUILD_TESTING)
   ssc32_hil_enable_warnings(ssc32_hil_tests)
   add_test(NAME ssc32_hil_tests COMMAND ssc32_hil_tests)
 
+  add_executable(ssc32_hil_coverage_tests tests/coverage_tests.cpp)
+  target_link_libraries(ssc32_hil_coverage_tests PRIVATE ssc32_hil::core)
+  target_compile_features(ssc32_hil_coverage_tests PRIVATE cxx_std_17)
+  ssc32_hil_enable_warnings(ssc32_hil_coverage_tests)
+  add_test(NAME ssc32_hil_coverage_tests COMMAND ssc32_hil_coverage_tests)
+
+  add_test(
+    NAME ssc32_hil_cli_tests
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli_tests.sh
+            $<TARGET_FILE:ssc32-hil> ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
   if(UNIX)
     add_executable(ssc32_hil_pty_test tests/pty_integration.cpp)
     target_link_libraries(ssc32_hil_pty_test PRIVATE ssc32_hil::core)

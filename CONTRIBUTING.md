@@ -13,7 +13,7 @@ The hook runs the complete Dockerized quality gate against the exact staged Git
 tree. Run the same gate explicitly against working-tree content with
 `./scripts/quality_gate.sh`. It enforces formatting, shell lint, Clang static
 analysis, GCC and Clang warnings-as-errors, tests, bundled-scenario validation,
-installation, ASan/UBSan, and production coverage floors of 40% lines and 30%
+installation, ASan/UBSan, and production coverage floors of 91% lines and 83%
 branches.
 
 Hardware reports should include the controller model and firmware, host OS,
