@@ -3,12 +3,13 @@ set -euo pipefail
 
 readonly workspace=/workspace
 readonly source_dir="${workspace}/src/ssc32-hil"
-readonly coverage_lines_minimum=91
-readonly coverage_branches_minimum=83
 
 section() {
   printf '\n==> %s\n' "$1"
 }
+
+section 'Quality-harness unit tests'
+python3 "${source_dir}/tests/test_coverage_ratchet.py"
 
 configure() {
   local build_dir="$1"
@@ -91,7 +92,9 @@ gcovr \
   --exclude-unreachable-branches \
   --exclude-throw-branches \
   --print-summary \
-  --fail-under-line "${coverage_lines_minimum}" \
-  --fail-under-branch "${coverage_branches_minimum}"
+  --json-summary "${workspace}/coverage-summary.json"
+python3 "${source_dir}/scripts/coverage_ratchet.py" check \
+  "${source_dir}/coverage-baseline.json" \
+  "${workspace}/coverage-summary.json"
 
 section 'Quality gate passed'

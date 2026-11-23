@@ -5,17 +5,26 @@ readonly ssc32_commit="d096754e7a47da0b737cd35f9fdd2fa9545e29a0"
 readonly tomlplusplus_tag="v3.4.0"
 repository_root="$(git rev-parse --show-toplevel)"
 readonly repository_root
-readonly source_mode="${1:---working-tree}"
+source_mode=--working-tree
+update_coverage_baseline=false
+for argument in "$@"; do
+  case "${argument}" in
+    --staged | --working-tree) source_mode="${argument}" ;;
+    --update-coverage-baseline) update_coverage_baseline=true ;;
+    *)
+      printf 'Usage: %s [--staged|--working-tree] [--update-coverage-baseline]\n' "$0" >&2
+      exit 2
+      ;;
+  esac
+done
+readonly source_mode update_coverage_baseline
 
-case "${source_mode}" in
-  --staged | --working-tree) ;;
-  *)
-    printf 'Usage: %s [--staged|--working-tree]\n' "$0" >&2
-    exit 2
-    ;;
-esac
+if [[ "${source_mode}" == "--staged" && "${update_coverage_baseline}" == true ]]; then
+  printf 'The coverage baseline can only be updated from the working tree.\n' >&2
+  exit 2
+fi
 
-for command in docker git tar; do
+for command in docker git python3 tar; do
   if ! command -v "${command}" >/dev/null 2>&1; then
     printf 'Required command not found: %s\n' "${command}" >&2
     exit 1
@@ -93,3 +102,9 @@ docker run --rm \
   --env CCACHE_DIR=/root/.cache/ccache \
   "${image_tag}" \
   bash /workspace/src/ssc32-hil/scripts/quality_gate_inner.sh
+
+if [[ "${update_coverage_baseline}" == true ]]; then
+  python3 "${repository_root}/scripts/coverage_ratchet.py" update \
+    "${repository_root}/coverage-baseline.json" \
+    "${workspace}/coverage-summary.json"
+fi
