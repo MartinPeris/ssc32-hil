@@ -15,9 +15,9 @@
 namespace ssc32_hil {
 namespace {
 
-const ChannelConfig& find_channel(
-    const std::map<std::string, const ChannelConfig*>& channels,
-    const std::string& name) {
+using ChannelMap = std::map<std::string, const ChannelConfig*>;
+
+const ChannelConfig& find_channel(const ChannelMap& channels, const std::string& name) {
   const auto iterator = channels.find(name);
   if (iterator == channels.end()) {
     throw ConfigurationError("scenario references undeclared channel '" + name + "'");
@@ -29,14 +29,12 @@ std::string byte_count_preview(const std::size_t count) {
   return "<read " + std::to_string(count) + " byte" + (count == 1U ? "" : "s") + ">";
 }
 
-}  // namespace
-
-ExecutionPlan compile_plan(const Profile& profile, const Scenario& scenario) {
+ChannelMap validate_profile(const Profile& profile) {
   if (profile.controller.device.empty()) {
     throw ConfigurationError("controller.device must not be empty");
   }
 
-  std::map<std::string, const ChannelConfig*> channels_by_name;
+  ChannelMap channels_by_name;
   std::set<std::uint8_t> channel_numbers;
   for (const auto& channel : profile.channels) {
     if (channel.name.empty()) {
@@ -61,6 +59,116 @@ ExecutionPlan compile_plan(const Profile& profile, const Scenario& scenario) {
       throw ConfigurationError(channel.name + ".speed_us_per_second must be positive");
     }
   }
+  return channels_by_name;
+}
+
+PlannedStep make_planned_step(const ScenarioStep& source) {
+  return {source.name,
+          source.action,
+          {},
+          {},
+          source.duration,
+          source.pause,
+          source.expected_moving,
+          source.expected_prefix,
+          source.operator_confirmation,
+          {}};
+}
+
+void compile_pulse_query(const ScenarioStep& source, const ChannelMap& channels_by_name,
+                         PlannedStep& step) {
+  if (source.channels.empty()) {
+    throw ConfigurationError(source.name + " requires channels");
+  }
+  std::set<std::uint8_t> seen;
+  for (const auto& name : source.channels) {
+    const auto& channel = find_channel(channels_by_name, name);
+    if (!seen.emplace(channel.number).second) {
+      throw ConfigurationError(source.name + " repeats channel " + name);
+    }
+    step.channels.push_back(channel.number);
+  }
+  step.wire_preview = {ssc32::Protocol::query_pulse_widths(step.channels),
+                       byte_count_preview(step.channels.size())};
+}
+
+std::uint16_t resolve_target(const ScenarioStep& source, const TargetSpec& target,
+                             const ChannelConfig& channel) {
+  if (target.absolute_us.has_value() == target.offset_us.has_value()) {
+    throw ConfigurationError(source.name + ".targets." + target.channel +
+                             " requires exactly one of pulse_us or offset_us");
+  }
+  const auto resolved = target.absolute_us
+                            ? static_cast<std::int64_t>(*target.absolute_us)
+                            : static_cast<std::int64_t>(channel.home_us) +
+                                  static_cast<std::int64_t>(*target.offset_us);
+  if (resolved < channel.minimum_us || resolved > channel.maximum_us) {
+    throw ConfigurationError(source.name + ".targets." + target.channel +
+                             " exceeds the configured safety envelope");
+  }
+  return static_cast<std::uint16_t>(resolved);
+}
+
+void compile_move(const ScenarioStep& source, const ChannelMap& channels_by_name,
+                  PlannedStep& step) {
+  if (!source.duration || source.duration->count() <= 0) {
+    throw ConfigurationError(source.name + " requires a positive duration_ms");
+  }
+  if (source.targets.empty()) {
+    throw ConfigurationError(source.name + " requires targets");
+  }
+
+  std::vector<ssc32::ServoCommand> commands;
+  std::set<std::uint8_t> seen;
+  for (const auto& target : source.targets) {
+    const auto& channel = find_channel(channels_by_name, target.channel);
+    if (!seen.emplace(channel.number).second) {
+      throw ConfigurationError(source.name + " repeats channel " + target.channel);
+    }
+    const auto pulse = resolve_target(source, target, channel);
+    step.targets.push_back(
+        {target.channel, channel.number, pulse, channel.speed_us_per_second});
+    commands.push_back({channel.number, pulse, channel.speed_us_per_second});
+    step.channels.push_back(channel.number);
+  }
+  step.wire_preview = {ssc32::Protocol::move(commands, source.duration),
+                       ssc32::Protocol::query_movement_status(), byte_count_preview(1U),
+                       ssc32::Protocol::query_pulse_widths(step.channels),
+                       byte_count_preview(step.channels.size())};
+}
+
+void compile_action(const ScenarioStep& source, const ChannelMap& channels_by_name,
+                    PlannedStep& step) {
+  switch (source.action) {
+    case Action::kVersion:
+      step.wire_preview = {ssc32::Protocol::version(), "<read until CR>"};
+      return;
+    case Action::kStatus:
+      if (!source.expected_moving) {
+        throw ConfigurationError(source.name + " requires expect_moving=true or false");
+      }
+      step.wire_preview = {ssc32::Protocol::query_movement_status(),
+                           byte_count_preview(1U)};
+      return;
+    case Action::kPulseQuery:
+      compile_pulse_query(source, channels_by_name, step);
+      return;
+    case Action::kMove:
+      compile_move(source, channels_by_name, step);
+      return;
+    case Action::kPause:
+      if (!source.pause || source.pause->count() <= 0) {
+        throw ConfigurationError(source.name + " requires a positive pause_ms");
+      }
+      step.wire_preview = {"<sleep " + std::to_string(source.pause->count()) + " ms>"};
+      return;
+  }
+}
+
+}  // namespace
+
+ExecutionPlan compile_plan(const Profile& profile, const Scenario& scenario) {
+  const auto channels_by_name = validate_profile(profile);
 
   ExecutionPlan plan{
       profile.name, scenario.name, profile.controller, profile.channels, {}};
@@ -69,94 +177,8 @@ ExecutionPlan compile_plan(const Profile& profile, const Scenario& scenario) {
     if (source.name.empty() || !step_names.emplace(source.name).second) {
       throw ConfigurationError("step names must be non-empty and unique");
     }
-    PlannedStep step;
-    step.name = source.name;
-    step.action = source.action;
-    step.duration = source.duration;
-    step.pause = source.pause;
-    step.expected_moving = source.expected_moving;
-    step.expected_prefix = source.expected_prefix;
-    step.operator_confirmation = source.operator_confirmation;
-
-    switch (source.action) {
-      case Action::kVersion:
-        step.wire_preview = {ssc32::Protocol::version(), "<read until CR>"};
-        break;
-      case Action::kStatus:
-        if (!source.expected_moving) {
-          throw ConfigurationError(source.name +
-                                   " requires expect_moving=true or false");
-        }
-        step.wire_preview = {ssc32::Protocol::query_movement_status(),
-                             byte_count_preview(1U)};
-        break;
-      case Action::kPulseQuery: {
-        if (source.channels.empty()) {
-          throw ConfigurationError(source.name + " requires channels");
-        }
-        std::set<std::uint8_t> seen;
-        for (const auto& name : source.channels) {
-          const auto& channel = find_channel(channels_by_name, name);
-          if (!seen.emplace(channel.number).second) {
-            throw ConfigurationError(source.name + " repeats channel " + name);
-          }
-          step.channels.push_back(channel.number);
-        }
-        step.wire_preview = {ssc32::Protocol::query_pulse_widths(step.channels),
-                             byte_count_preview(step.channels.size())};
-        break;
-      }
-      case Action::kMove: {
-        if (!source.duration || source.duration->count() <= 0) {
-          throw ConfigurationError(source.name + " requires a positive duration_ms");
-        }
-        if (source.targets.empty()) {
-          throw ConfigurationError(source.name + " requires targets");
-        }
-        std::vector<ssc32::ServoCommand> commands;
-        std::set<std::uint8_t> seen;
-        for (const auto& target : source.targets) {
-          const auto& channel = find_channel(channels_by_name, target.channel);
-          if ((target.absolute_us.has_value() == target.offset_us.has_value())) {
-            throw ConfigurationError(source.name + ".targets." + target.channel +
-                                     " requires exactly one of pulse_us or offset_us");
-          }
-          std::int64_t resolved = 0;
-          if (target.absolute_us) {
-            resolved = *target.absolute_us;
-          } else {
-            resolved = static_cast<std::int64_t>(channel.home_us) +
-                       static_cast<std::int64_t>(*target.offset_us);
-          }
-          if (resolved < channel.minimum_us || resolved > channel.maximum_us) {
-            throw ConfigurationError(source.name + ".targets." + target.channel +
-                                     " exceeds the configured safety envelope");
-          }
-          if (!seen.emplace(channel.number).second) {
-            throw ConfigurationError(source.name + " repeats channel " +
-                                     target.channel);
-          }
-          const auto pulse = static_cast<std::uint16_t>(resolved);
-          step.targets.push_back(
-              {target.channel, channel.number, pulse, channel.speed_us_per_second});
-          commands.push_back({channel.number, pulse, channel.speed_us_per_second});
-          step.channels.push_back(channel.number);
-        }
-        step.wire_preview = {ssc32::Protocol::move(commands, source.duration),
-                             ssc32::Protocol::query_movement_status(),
-                             byte_count_preview(1U),
-                             ssc32::Protocol::query_pulse_widths(step.channels),
-                             byte_count_preview(step.channels.size())};
-        break;
-      }
-      case Action::kPause:
-        if (!source.pause || source.pause->count() <= 0) {
-          throw ConfigurationError(source.name + " requires a positive pause_ms");
-        }
-        step.wire_preview = {"<sleep " + std::to_string(source.pause->count()) +
-                             " ms>"};
-        break;
-    }
+    auto step = make_planned_step(source);
+    compile_action(source, channels_by_name, step);
     plan.steps.push_back(std::move(step));
   }
   return plan;

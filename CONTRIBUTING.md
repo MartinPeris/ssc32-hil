@@ -3,13 +3,18 @@
 Keep changes narrow and testable. New scenario actions must define validation,
 wire preview, execution, failure behavior, and automated coverage together.
 
-Before submitting a change:
+Install the versioned pre-commit hook once per clone:
 
 ```sh
-cmake -S . -B build -G Ninja -DSSC32_HIL_WARNINGS_AS_ERRORS=ON
-cmake --build build
-ctest --test-dir build --output-on-failure
+./scripts/install_git_hooks.sh
 ```
+
+The hook runs the complete Dockerized quality gate against the exact staged Git
+tree. Run the same gate explicitly against working-tree content with
+`./scripts/quality_gate.sh`. It enforces formatting, shell lint, Clang static
+analysis, GCC and Clang warnings-as-errors, tests, bundled-scenario validation,
+installation, ASan/UBSan, and production coverage floors of 40% lines and 30%
+branches.
 
 Hardware reports should include the controller model and firmware, host OS,
 serial adapter, baud rate, profile, scenario, and generated JSON evidence. Do

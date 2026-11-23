@@ -66,6 +66,54 @@ std::vector<std::string> parse_string_array(
   return result;
 }
 
+TargetSpec parse_target(const std::string_view step_name, const toml::key& target_name,
+                        const toml::node& target_node) {
+  const auto target_context =
+      std::string(step_name) + ".targets." + std::string(target_name.str());
+  const auto* target_table = target_node.as_table();
+  if (target_table == nullptr) {
+    throw ConfigurationError(target_context + " must be a table");
+  }
+
+  TargetSpec target;
+  target.channel = std::string(target_name.str());
+  if (const auto value = (*target_table)["pulse_us"].value<std::int64_t>()) {
+    target.absolute_us =
+        checked_integer<std::uint16_t>(*value, target_context + ".pulse_us");
+  }
+  if (const auto value = (*target_table)["offset_us"].value<std::int64_t>()) {
+    target.offset_us =
+        checked_integer<std::int32_t>(*value, target_context + ".offset_us");
+  }
+  return target;
+}
+
+ScenarioStep parse_scenario_step(const toml::table& table) {
+  ScenarioStep step;
+  step.name = require_value<std::string>(table, "name", "step");
+  step.action = parse_action(require_value<std::string>(table, "action", step.name));
+
+  if (table.contains("channels")) {
+    step.channels = parse_string_array(table["channels"], step.name + ".channels");
+  }
+  if (const auto value = table["duration_ms"].value<std::int64_t>()) {
+    step.duration = std::chrono::milliseconds(*value);
+  }
+  if (const auto value = table["pause_ms"].value<std::int64_t>()) {
+    step.pause = std::chrono::milliseconds(*value);
+  }
+  step.expected_moving = table["expect_moving"].value<bool>();
+  step.expected_prefix = table["expect_prefix"].value_or<std::string>("");
+  step.operator_confirmation = table["operator_confirmation"].value_or<std::string>("");
+
+  if (const auto* targets = table["targets"].as_table()) {
+    for (const auto& [name, target_node] : *targets) {
+      step.targets.push_back(parse_target(step.name, name, target_node));
+    }
+  }
+  return step;
+}
+
 }  // namespace
 
 Profile load_profile(const std::filesystem::path& path) {
@@ -132,47 +180,7 @@ Scenario load_scenario(const std::filesystem::path& path) {
       throw ConfigurationError("scenario: [[steps]] must not be empty");
     }
     for (const auto& node : *steps) {
-      const auto& table = *node.as_table();
-      ScenarioStep step;
-      step.name = require_value<std::string>(table, "name", "step");
-      step.action =
-          parse_action(require_value<std::string>(table, "action", step.name));
-
-      if (table.contains("channels")) {
-        step.channels = parse_string_array(table["channels"], step.name + ".channels");
-      }
-      if (const auto value = table["duration_ms"].value<std::int64_t>()) {
-        step.duration = std::chrono::milliseconds(*value);
-      }
-      if (const auto value = table["pause_ms"].value<std::int64_t>()) {
-        step.pause = std::chrono::milliseconds(*value);
-      }
-      step.expected_moving = table["expect_moving"].value<bool>();
-      step.expected_prefix = table["expect_prefix"].value_or<std::string>("");
-      step.operator_confirmation =
-          table["operator_confirmation"].value_or<std::string>("");
-
-      if (const auto* targets = table["targets"].as_table()) {
-        for (const auto& [name, target_node] : *targets) {
-          const auto* target_table = target_node.as_table();
-          if (target_table == nullptr) {
-            throw ConfigurationError(step.name + ".targets." + std::string(name.str()) +
-                                     " must be a table");
-          }
-          TargetSpec target;
-          target.channel = std::string(name.str());
-          if (const auto value = (*target_table)["pulse_us"].value<std::int64_t>()) {
-            target.absolute_us = checked_integer<std::uint16_t>(
-                *value, step.name + ".targets." + target.channel + ".pulse_us");
-          }
-          if (const auto value = (*target_table)["offset_us"].value<std::int64_t>()) {
-            target.offset_us = checked_integer<std::int32_t>(
-                *value, step.name + ".targets." + target.channel + ".offset_us");
-          }
-          step.targets.push_back(std::move(target));
-        }
-      }
-      scenario.steps.push_back(std::move(step));
+      scenario.steps.push_back(parse_scenario_step(*node.as_table()));
     }
     return scenario;
   } catch (const toml::parse_error& error) {

@@ -30,7 +30,7 @@ struct Profile {
   std::vector<ChannelConfig> channels;
 };
 
-enum class Action { kVersion, kStatus, kPulseQuery, kMove, kPause };
+enum class Action : std::uint8_t { kVersion, kStatus, kPulseQuery, kMove, kPause };
 
 struct TargetSpec {
   std::string channel;
