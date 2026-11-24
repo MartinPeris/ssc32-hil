@@ -1,0 +1,66 @@
+name = "AL5C channels 16-22 conservative wiring"
+
+[controller]
+device = "/dev/ttyUSB0"
+baud = 115200
+timeout_ms = 500
+
+# First-motion envelope only. All homes are provisional 1500 us values and
+# every channel is limited to a small excursion until its direction and
+# mechanical limits have been observed on the physical arm.
+
+[[channels]]
+name = "base_rotation"
+number = 16
+minimum_us = 1450
+home_us = 1500
+maximum_us = 1550
+speed_us_per_second = 50
+
+[[channels]]
+name = "shoulder_link_right"
+number = 17
+minimum_us = 1475
+home_us = 1500
+maximum_us = 1525
+speed_us_per_second = 25
+
+[[channels]]
+name = "shoulder_link_left"
+number = 18
+minimum_us = 1475
+home_us = 1500
+maximum_us = 1525
+speed_us_per_second = 25
+
+[[channels]]
+name = "shoulder"
+number = 19
+minimum_us = 1475
+home_us = 1500
+maximum_us = 1525
+speed_us_per_second = 25
+
+[[channels]]
+name = "wrist"
+number = 20
+minimum_us = 1470
+home_us = 1500
+maximum_us = 1530
+speed_us_per_second = 30
+
+[[channels]]
+name = "wrist_rotation"
+number = 21
+minimum_us = 1470
+home_us = 1500
+maximum_us = 1530
+speed_us_per_second = 30
+
+[[channels]]
+name = "gripper"
+number = 22
+minimum_us = 1480
+home_us = 1500
+maximum_us = 1520
+speed_us_per_second = 20

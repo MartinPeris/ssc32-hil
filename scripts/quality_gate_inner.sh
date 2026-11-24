@@ -30,6 +30,12 @@ validate_scenarios() {
   "${executable}" validate \
     "${source_dir}/profiles/al5c-conservative.toml" \
     "${source_dir}/scenarios/single-channel-smoke.toml"
+  "${executable}" validate \
+    "${source_dir}/profiles/al5c-ch16-22-conservative.toml" \
+    "${source_dir}/scenarios/al5c-ch16-22-controller-check.toml"
+  "${executable}" validate \
+    "${source_dir}/profiles/al5c-ch16-22-conservative.toml" \
+    "${source_dir}/scenarios/al5c-ch16-22-motion-smoke.toml"
 }
 
 section 'Formatting'

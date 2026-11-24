@@ -1,0 +1,118 @@
+name = "AL5C channels 16-22 conservative motion smoke test"
+
+[[steps]]
+name = "identify-controller"
+action = "version"
+expect_prefix = "SSC32"
+
+[[steps]]
+name = "confirm-idle"
+action = "status"
+expect_moving = false
+
+[[steps]]
+name = "establish-provisional-neutral"
+action = "move"
+duration_ms = 3000
+targets = { base_rotation = { offset_us = 0 }, shoulder_link_right = { offset_us = 0 }, shoulder_link_left = { offset_us = 0 }, shoulder = { offset_us = 0 }, wrist = { offset_us = 0 }, wrist_rotation = { offset_us = 0 }, gripper = { offset_us = 0 } }
+operator_confirmation = "Confirm the supported arm is near a safe neutral pose and no servo is stalled, buzzing, or fighting another servo. Cut servo power immediately if it is not."
+
+[[steps]]
+name = "base-small-positive"
+action = "move"
+duration_ms = 1500
+targets = { base_rotation = { offset_us = 30 } }
+operator_confirmation = "Confirm a small, smooth base rotation without binding."
+
+[[steps]]
+name = "base-return-neutral"
+action = "move"
+duration_ms = 1500
+targets = { base_rotation = { offset_us = 0 } }
+operator_confirmation = "Confirm the base returned to neutral."
+
+# The paired shoulder servos are commanded with opposite pulse offsets because
+# channel 18 is mechanically mirrored relative to channel 17. Never command
+# either linked shoulder servo alone while the linkage is assembled.
+[[steps]]
+name = "paired-shoulder-links-small-positive"
+action = "move"
+duration_ms = 2000
+targets = { shoulder_link_right = { offset_us = 20 }, shoulder_link_left = { offset_us = -20 } }
+operator_confirmation = "Confirm both shoulder-link servos share the load and move together. Cut power immediately if they oppose each other."
+
+[[steps]]
+name = "paired-shoulder-links-return-neutral"
+action = "move"
+duration_ms = 2000
+targets = { shoulder_link_right = { offset_us = 0 }, shoulder_link_left = { offset_us = 0 } }
+operator_confirmation = "Confirm both shoulder-link servos returned together without fighting."
+
+[[steps]]
+name = "shoulder-small-positive"
+action = "move"
+duration_ms = 1500
+targets = { shoulder = { offset_us = 20 } }
+operator_confirmation = "Confirm channel 19 moved the expected joint smoothly."
+
+[[steps]]
+name = "shoulder-return-neutral"
+action = "move"
+duration_ms = 1500
+targets = { shoulder = { offset_us = 0 } }
+operator_confirmation = "Confirm channel 19 returned to neutral."
+
+[[steps]]
+name = "wrist-small-positive"
+action = "move"
+duration_ms = 1500
+targets = { wrist = { offset_us = 25 } }
+operator_confirmation = "Confirm a small, smooth wrist movement."
+
+[[steps]]
+name = "wrist-return-neutral"
+action = "move"
+duration_ms = 1500
+targets = { wrist = { offset_us = 0 } }
+operator_confirmation = "Confirm the wrist returned to neutral."
+
+[[steps]]
+name = "wrist-rotation-small-positive"
+action = "move"
+duration_ms = 1500
+targets = { wrist_rotation = { offset_us = 25 } }
+operator_confirmation = "Confirm a small, smooth wrist rotation."
+
+[[steps]]
+name = "wrist-rotation-return-neutral"
+action = "move"
+duration_ms = 1500
+targets = { wrist_rotation = { offset_us = 0 } }
+operator_confirmation = "Confirm wrist rotation returned to neutral."
+
+[[steps]]
+name = "gripper-small-positive"
+action = "move"
+duration_ms = 1500
+targets = { gripper = { offset_us = 15 } }
+operator_confirmation = "Confirm a small gripper movement without reaching a hard stop."
+
+[[steps]]
+name = "gripper-return-neutral"
+action = "move"
+duration_ms = 1500
+targets = { gripper = { offset_us = 0 } }
+operator_confirmation = "Confirm the gripper returned to neutral."
+
+[[steps]]
+name = "verify-final-commanded-pulses"
+action = "pulse_query"
+channels = [
+  "base_rotation",
+  "shoulder_link_right",
+  "shoulder_link_left",
+  "shoulder",
+  "wrist",
+  "wrist_rotation",
+  "gripper",
+]

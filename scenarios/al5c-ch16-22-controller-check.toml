@@ -1,0 +1,24 @@
+name = "AL5C channels 16-22 controller-only check"
+
+[[steps]]
+name = "identify-controller"
+action = "version"
+expect_prefix = "SSC32"
+
+[[steps]]
+name = "confirm-idle"
+action = "status"
+expect_moving = false
+
+[[steps]]
+name = "read-all-commanded-pulses"
+action = "pulse_query"
+channels = [
+  "base_rotation",
+  "shoulder_link_right",
+  "shoulder_link_left",
+  "shoulder",
+  "wrist",
+  "wrist_rotation",
+  "gripper",
+]

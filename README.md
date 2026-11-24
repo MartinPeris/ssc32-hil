@@ -15,8 +15,9 @@ and records the bytes actually exchanged with the controller.
 
 The parser, plan compiler, protocol preview, recording transport, and POSIX
 serial path are exercised in automated tests. Physical SSC-32 validation is
-still pending. The bundled AL5C profile intentionally uses narrow pulse limits
-and omits the unverified auxiliary base-servo modification.
+still pending. The bundled AL5C profiles intentionally use narrow pulse limits.
+The channels 16–22 profile records the currently reported seven-servo wiring,
+including the mechanically mirrored shoulder-link pair.
 
 ## Safety boundary
 
@@ -86,6 +87,33 @@ Execute only after reviewing that plan:
 Each run writes `ssc32-hil-report.json` and `ssc32-hil-report.xml`. The JSON
 report includes the result of every step and a timestamped hexadecimal TX/RX
 transcript. The JUnit report can be ingested by test-reporting tools.
+
+### Channels 16–22 AL5C checkout
+
+First validate communication with servo power off:
+
+```sh
+./build/ssc32-hil run \
+  profiles/al5c-ch16-22-conservative.toml \
+  scenarios/al5c-ch16-22-controller-check.toml \
+  --device /dev/ttyUSB0 \
+  --execute
+```
+
+Then support the arm, position it near the provisional 1500 µs neutral pose,
+keep the servo-power cutoff within reach, and preview the motion test:
+
+```sh
+./build/ssc32-hil plan \
+  profiles/al5c-ch16-22-conservative.toml \
+  scenarios/al5c-ch16-22-motion-smoke.toml \
+  --device /dev/ttyUSB0
+```
+
+The motion scenario uses only 15–30 µs excursions and returns each joint to
+neutral before continuing. Channels 17 and 18 are always commanded atomically
+with opposite offsets; if they oppose each other instead of sharing the load,
+cut servo power and reverse that pairing before proceeding.
 
 ## Declarative model
 
