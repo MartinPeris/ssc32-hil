@@ -115,6 +115,26 @@ neutral before continuing. Channels 17 and 18 are always commanded atomically
 with opposite offsets; if they oppose each other instead of sharing the load,
 cut servo power and reverse that pairing before proceeding.
 
+For the dedicated paired-shoulder sweep, preview and run:
+
+```sh
+./build/ssc32-hil plan \
+  profiles/al5c-shoulder-pair-45deg-provisional.toml \
+  scenarios/al5c-shoulder-pair-45deg.toml \
+  --device /dev/ttyUSB0
+
+./build/ssc32-hil run \
+  profiles/al5c-shoulder-pair-45deg-provisional.toml \
+  scenarios/al5c-shoulder-pair-45deg.toml \
+  --device /dev/ttyUSB0 \
+  --execute
+```
+
+This scenario commands only channels 17 and 18. It assumes the common
+500–2500 µs ≈ 180° mapping, so 1500/1500 is neutral, 2000/1000 is provisional
++45°, and 1000/2000 is provisional −45°. Those angles remain estimates until
+the physical arm is measured and calibrated.
+
 ## Declarative model
 
 A hardware profile gives semantic names to physical channels and defines the

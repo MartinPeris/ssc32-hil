@@ -36,6 +36,9 @@ validate_scenarios() {
   "${executable}" validate \
     "${source_dir}/profiles/al5c-ch16-22-conservative.toml" \
     "${source_dir}/scenarios/al5c-ch16-22-motion-smoke.toml"
+  "${executable}" validate \
+    "${source_dir}/profiles/al5c-shoulder-pair-45deg-provisional.toml" \
+    "${source_dir}/scenarios/al5c-shoulder-pair-45deg.toml"
 }
 
 section 'Formatting'

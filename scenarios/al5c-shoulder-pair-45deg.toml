@@ -1,0 +1,46 @@
+name = "AL5C paired shoulder neutral and provisional plus-minus 45 degrees"
+
+[[steps]]
+name = "identify-controller"
+action = "version"
+expect_prefix = "SSC32"
+
+[[steps]]
+name = "confirm-idle"
+action = "status"
+expect_moving = false
+
+[[steps]]
+name = "shoulder-neutral"
+action = "move"
+duration_ms = 5000
+targets = { shoulder_link_right = { pulse_us = 1500 }, shoulder_link_left = { pulse_us = 1500 } }
+operator_confirmation = "Confirm both shoulder servos reached neutral together without buzzing, binding, or fighting."
+
+[[steps]]
+name = "shoulder-forward-provisional-45-degrees"
+action = "move"
+duration_ms = 5000
+targets = { shoulder_link_right = { pulse_us = 2000 }, shoulder_link_left = { pulse_us = 1000 } }
+operator_confirmation = "Confirm the shoulder moved approximately 45 degrees forward and both servos shared the load. Cut power immediately if they oppose each other or approach a hard stop."
+
+[[steps]]
+name = "shoulder-return-neutral-from-forward"
+action = "move"
+duration_ms = 5000
+targets = { shoulder_link_right = { pulse_us = 1500 }, shoulder_link_left = { pulse_us = 1500 } }
+operator_confirmation = "Confirm the shoulder returned to neutral smoothly."
+
+[[steps]]
+name = "shoulder-backward-provisional-45-degrees"
+action = "move"
+duration_ms = 5000
+targets = { shoulder_link_right = { pulse_us = 1000 }, shoulder_link_left = { pulse_us = 2000 } }
+operator_confirmation = "Confirm the shoulder moved approximately 45 degrees backward and both servos shared the load. Cut power immediately if they oppose each other or approach a hard stop."
+
+[[steps]]
+name = "shoulder-final-neutral"
+action = "move"
+duration_ms = 5000
+targets = { shoulder_link_right = { pulse_us = 1500 }, shoulder_link_left = { pulse_us = 1500 } }
+operator_confirmation = "Confirm the shoulder finished at neutral without servo strain."

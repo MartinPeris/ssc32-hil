@@ -1,0 +1,27 @@
+name = "AL5C paired shoulder provisional 45 degree calibration"
+
+[controller]
+device = "/dev/ttyUSB0"
+baud = 115200
+timeout_ms = 500
+
+# Provisional conversion: 500-2500 us represents approximately 180 degrees,
+# making a 500 us offset approximately 45 degrees. The two mechanically linked
+# servos are mirrored and must always be commanded together with opposite pulse
+# offsets. Confirm the physical range before treating these angles as calibrated.
+
+[[channels]]
+name = "shoulder_link_right"
+number = 17
+minimum_us = 1000
+home_us = 1500
+maximum_us = 2000
+speed_us_per_second = 100
+
+[[channels]]
+name = "shoulder_link_left"
+number = 18
+minimum_us = 1000
+home_us = 1500
+maximum_us = 2000
+speed_us_per_second = 100
